@@ -1,0 +1,138 @@
+name: iOS simulator verification
+
+# Manually triggered: builds the app for the iOS Simulator on a macOS runner
+# (this can't be done from the Windows dev machine — no Xcode/Simulator there)
+# and captures a screenshot on three iPhone sizes, uploaded as artifacts.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    outputs:
+      app-name: ${{ steps.build.outputs.app-name }}
+      bundle-id: com.allbuddyrewards.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Select Xcode
+        run: sudo xcode-select -p && xcodebuild -version
+
+      - name: Prebuild native iOS project
+        run: npx expo prebuild --platform ios
+        env:
+          CI: true
+
+      - name: Discover workspace and scheme
+        id: discover
+        working-directory: ios
+        run: |
+          WORKSPACE=$(ls -d *.xcworkspace | head -1)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1; next} flag && NF {print $1; exit}')
+          echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+          echo "Resolved workspace=$WORKSPACE scheme=$SCHEME"
+
+      - name: Build for iOS Simulator (Release — embeds the JS bundle, no Metro needed at runtime)
+        id: build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace "${{ steps.discover.outputs.workspace }}" \
+            -scheme "${{ steps.discover.outputs.scheme }}" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee ../xcodebuild.log
+
+          APP_PATH=$(find build/Build/Products -maxdepth 2 -name "*.app" | head -1)
+          echo "Found app at $APP_PATH"
+          echo "app-path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          echo "app-name=$(basename "$APP_PATH")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          retention-days: 7
+
+      - name: Upload built .app
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-bundle
+          path: ios/${{ steps.build.outputs.app-path }}
+          retention-days: 7
+
+  screenshot:
+    needs: build
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: iphone-se-4.7in-small
+            device_type: "iPhone SE (3rd generation)"
+          - label: iphone-15-6.1in-medium
+            device_type: "iPhone 15"
+          - label: iphone-15-pro-max-6.7in-large
+            device_type: "iPhone 15 Pro Max"
+    steps:
+      - name: Download built .app
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-app-bundle
+          path: app
+
+      - name: Create and boot simulator
+        id: sim
+        run: |
+          set -e
+          RUNTIME=$(xcrun simctl list runtimes available --json | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+ios = [r for r in data['runtimes'] if r['name'].startswith('iOS')]
+ios.sort(key=lambda r: [int(p) for p in r['version'].split('.')])
+print(ios[-1]['identifier'])
+")
+          DEVTYPE=$(xcrun simctl list devicetypes --json | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+match = [t for t in data['devicetypes'] if t['name'] == '${{ matrix.device_type }}']
+print(match[0]['identifier'])
+")
+          echo "Using runtime=$RUNTIME devicetype=$DEVTYPE"
+          UDID=$(xcrun simctl create "CI-${{ matrix.label }}" "$DEVTYPE" "$RUNTIME")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Install and launch app
+        run: |
+          APP_PATH=$(find app -maxdepth 1 -name "*.app" | head -1)
+          xcrun simctl install "${{ steps.sim.outputs.udid }}" "$APP_PATH"
+          xcrun simctl launch "${{ steps.sim.outputs.udid }}" com.allbuddyrewards.app
+          sleep 10
+
+      - name: Screenshot Edit Profile (landing screen)
+        run: |
+          mkdir -p screenshots
+          xcrun simctl io "${{ steps.sim.outputs.udid }}" screenshot "screenshots/1-edit-profile-rewards.png"
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots-${{ matrix.label }}
+          path: screenshots
+          retention-days: 14
