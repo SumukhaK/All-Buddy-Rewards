@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     outputs:
       app-name: ${{ steps.build.outputs.app-name }}
       bundle-id: com.allbuddyrewards.app
@@ -27,8 +27,13 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
-      - name: Select Xcode
-        run: sudo xcode-select -p && xcodebuild -version
+      - name: Select newest available Xcode (React Native 0.86 needs >= 16.1)
+        run: |
+          ls /Applications | grep Xcode
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $LATEST"
+          sudo xcode-select -s "$LATEST"
+          xcodebuild -version
 
       - name: Prebuild native iOS project
         run: npx expo prebuild --platform ios
@@ -39,8 +44,17 @@ jobs:
         id: discover
         working-directory: ios
         run: |
+          set -e
           WORKSPACE=$(ls -d *.xcworkspace | head -1)
+          if [ -z "$WORKSPACE" ]; then
+            echo "::error::No .xcworkspace found after prebuild — CocoaPods install likely failed."
+            exit 1
+          fi
           SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1; next} flag && NF {print $1; exit}')
+          if [ -z "$SCHEME" ]; then
+            echo "::error::No scheme found in $WORKSPACE"
+            exit 1
+          fi
           echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
           echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
           echo "Resolved workspace=$WORKSPACE scheme=$SCHEME"
@@ -81,7 +95,7 @@ jobs:
 
   screenshot:
     needs: build
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
