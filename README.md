@@ -88,6 +88,10 @@ Tests are co-located with the code they cover (`Component.tsx` / `Component.test
 - **Unit tests** for the tier-progress math (`src/features/rewards/utils/tierProgress.test.ts`) and mock-data sorting rules.
 - **Component/UI tests** (React Native Testing Library) for every interactive piece: the rewards teaser card, milestone cards, the info tooltip's open/close behavior, and both screens' navigation and tab-switching behavior.
 
+## Device size testing
+
+The app has been run live on three Android emulators (small/medium/large screens) to confirm the UI holds up across real device sizes — see [`docs/screenshots/device-testing`](docs/screenshots/device-testing) for the screenshots and results. iOS hasn't been verified yet since that requires macOS/Xcode; see the notes in that folder for what's needed.
+
 ## Status
 
 Design mockups and the two screens above are implemented against mock data (see `src/features/rewards/data/mockRewardsData.ts`) — there is no backend yet. Photo upload on Edit Profile is visual-only for now.
