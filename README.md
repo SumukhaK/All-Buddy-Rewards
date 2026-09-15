@@ -90,7 +90,9 @@ Tests are co-located with the code they cover (`Component.tsx` / `Component.test
 
 ## Device size testing
 
-The app has been run live on three Android emulators (small/medium/large screens) to confirm the UI holds up across real device sizes — see [`docs/screenshots/device-testing`](docs/screenshots/device-testing) for the screenshots and results. iOS hasn't been verified yet since that requires macOS/Xcode; see the notes in that folder for what's needed.
+The app has been run live on three Android emulators (small/medium/large screens) to confirm the UI holds up across real device sizes — see [`docs/screenshots/device-testing`](docs/screenshots/device-testing) for the screenshots and results.
+
+iOS was attempted via a GitHub Actions macOS workflow ([`.github/workflows/ios-verify.yml`](.github/workflows/ios-verify.yml)) rather than skipped outright, but it's currently blocked: the native build fails on every available Xcode version due to real compile errors inside `expo-modules-jsi@57.1.0` itself, not this app's code. See [`docs/screenshots/device-testing/ios/README.md`](docs/screenshots/device-testing/ios/README.md) for the specifics and what unblocks it.
 
 ## Status
 

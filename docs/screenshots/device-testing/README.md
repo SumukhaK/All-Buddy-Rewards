@@ -12,6 +12,6 @@ The app run live (via Expo Go) on three Android emulators spanning small, medium
 
 All three rendered correctly: no clipped text, no overlapping elements, the rewards card and milestone list scale cleanly, and the fixed header/footer plus scrollable middle section hold their layout at every size. The small 480×800 screen was the real test — everything stayed legible and nothing overflowed.
 
-## iOS — not yet run
+## iOS — attempted via CI, blocked upstream
 
-See [`ios/README.md`](ios/README.md) — this machine has no macOS/Xcode, so the iOS Simulator can't be launched or screenshotted from here. That file documents exactly what to run once Mac access is available.
+A GitHub Actions workflow ([`.github/workflows/ios-verify.yml`](../../../.github/workflows/ios-verify.yml)) was built to build and screenshot the app on macOS runners, since this dev machine has no Xcode. It got through checkout, dependency install, `expo prebuild`, and CocoaPods every time, but the native Swift compile fails on **every** Xcode version tried (16.4, 26.0, 26.2, 26.3) with real compile errors inside `expo-modules-jsi@57.1.0` itself (the latest version published for Expo SDK 57) — not in this app's code. See [`ios/README.md`](ios/README.md) for the exact errors on each Xcode version and what unblocks it.
