@@ -103,19 +103,8 @@ jobs:
         id: sim
         run: |
           set -e
-          RUNTIME=$(xcrun simctl list runtimes available --json | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-ios = [r for r in data['runtimes'] if r['name'].startswith('iOS')]
-ios.sort(key=lambda r: [int(p) for p in r['version'].split('.')])
-print(ios[-1]['identifier'])
-")
-          DEVTYPE=$(xcrun simctl list devicetypes --json | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-match = [t for t in data['devicetypes'] if t['name'] == '${{ matrix.device_type }}']
-print(match[0]['identifier'])
-")
+          RUNTIME=$(xcrun simctl list runtimes available --json | python3 -c "import json,sys; d=json.load(sys.stdin); ios=sorted([r for r in d['runtimes'] if r['name'].startswith('iOS')], key=lambda r:[int(p) for p in r['version'].split('.')]); print(ios[-1]['identifier'])")
+          DEVTYPE=$(xcrun simctl list devicetypes --json | python3 -c "import json,sys; d=json.load(sys.stdin); print([t for t in d['devicetypes'] if t['name']=='${{ matrix.device_type }}'][0]['identifier'])")
           echo "Using runtime=$RUNTIME devicetype=$DEVTYPE"
           UDID=$(xcrun simctl create "CI-${{ matrix.label }}" "$DEVTYPE" "$RUNTIME")
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
