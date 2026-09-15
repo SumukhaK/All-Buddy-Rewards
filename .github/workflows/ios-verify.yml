@@ -27,12 +27,13 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
-      - name: Select newest available Xcode (React Native 0.86 needs >= 16.1)
+      # RN 0.86 needs Xcode >= 16.1. The 26.x line on this runner has a Swift
+      # concurrency/interop change that breaks expo-modules-jsi's C++ headers,
+      # so pin to the newest 16.x instead of blindly taking the latest install.
+      - name: Select Xcode 16.4
         run: |
           ls /Applications | grep Xcode
-          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
-          echo "Selecting $LATEST"
-          sudo xcode-select -s "$LATEST"
+          sudo xcode-select -s /Applications/Xcode_16.4.app
           xcodebuild -version
 
       - name: Prebuild native iOS project
