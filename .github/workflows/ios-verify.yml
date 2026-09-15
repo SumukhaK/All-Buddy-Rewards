@@ -5,6 +5,10 @@ name: iOS simulator verification
 # and captures a screenshot on three iPhone sizes, uploaded as artifacts.
 on:
   workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ios-verify.yml"
 
 jobs:
   build:
