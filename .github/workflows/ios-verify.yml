@@ -1,10 +1,10 @@
 name: iOS simulator verification
 
 # Manually triggered: builds the app for the iOS Simulator on a macOS runner
-# (this can't be done from the Windows dev machine — no Xcode/Simulator there)
+# (this can't be done from the Windows dev machine - no Xcode/Simulator there)
 # and captures a screenshot on three iPhone sizes, uploaded as artifacts.
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
   build:
