@@ -29,13 +29,13 @@ jobs:
 
       # RN 0.86 needs Xcode >= 16.1, but expo-modules-jsi's embedded Swift
       # package requires Swift tools 6.2 (Xcode 16.x only ships 6.0/6.1) - so
-      # it must be a 26.x Xcode. 26.3 has a stricter Swift/C++ interop check
-      # that breaks expo-modules-jsi's headers, so try the earliest 26.x
-      # instead of the newest.
-      - name: Select Xcode 26.0
+      # it must be a 26.x Xcode. 26.0 rejects expo-modules-jsi's `weak let`
+      # (Swift got stricter); 26.3 rejects its SWIFT_SHARED_REFERENCE
+      # annotations (Swift got stricter again). Trying 26.2 next.
+      - name: Select Xcode 26.2
         run: |
           ls /Applications | grep Xcode
-          sudo xcode-select -s /Applications/Xcode_26.0.app
+          sudo xcode-select -s /Applications/Xcode_26.2.app
           xcodebuild -version
 
       - name: Prebuild native iOS project
