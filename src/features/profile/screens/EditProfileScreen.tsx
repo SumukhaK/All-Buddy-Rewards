@@ -73,10 +73,12 @@ export function EditProfileScreen({ navigation }: Props) {
             <DisplayField label="Last Name" required count={`${profile.lastName.length}/50`} value={profile.lastName} />
           </View>
 
-          <RewardsTeaserCard
-            points={mockRewardsProfile.points}
-            onPress={() => navigation.navigate('RewardsDetails')}
-          />
+          <View style={styles.rewardsWrap}>
+            <RewardsTeaserCard
+              points={mockRewardsProfile.points}
+              onPress={() => navigation.navigate('RewardsDetails')}
+            />
+          </View>
 
           <View style={styles.fieldSingle}>
             <Text style={styles.fieldLabel}>Email Address</Text>
@@ -235,6 +237,9 @@ const styles = StyleSheet.create({
   fieldRow: {
     flexDirection: 'row',
     gap: spacing.md + 2,
+    marginBottom: spacing.xl,
+  },
+  rewardsWrap: {
     marginBottom: spacing.xl,
   },
   field: {
