@@ -1,13 +1,4 @@
-import { useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Card } from '../../../components/Card';
@@ -27,7 +18,13 @@ import { mockRewardsProfile } from '../../rewards/data/mockRewardsData';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
-const initialProfile = {
+/**
+ * Read-only for now: the rewards card is the only interactive piece this screen needs.
+ * Turning the rest into a real editable form (with save/validation/persistence) is a
+ * separate task — plain TextInputs here previously meant a stray tap could pop the
+ * keyboard with nothing to actually submit to.
+ */
+const profile = {
   firstName: 'sumukha',
   lastName: 'K',
   email: 'ksa.allizzwell@gmail.com',
@@ -37,14 +34,8 @@ const initialProfile = {
 };
 
 export function EditProfileScreen({ navigation }: Props) {
-  const [profile, setProfile] = useState(initialProfile);
-
-  const update = (field: keyof typeof initialProfile) => (value: string) =>
-    setProfile((prev) => ({ ...prev, [field]: value }));
-
   const handleClose = () => {
-    setProfile(initialProfile);
-    Alert.alert('Changes discarded');
+    Alert.alert('Closed');
   };
 
   const handleSave = () => {
@@ -66,36 +57,20 @@ export function EditProfileScreen({ navigation }: Props) {
         </Pressable>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.centerColumn}>
           <View style={styles.avatarWrap}>
             <View style={styles.avatar}>
               <Text style={styles.avatarInitial}>S</Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Change profile photo"
-              style={styles.avatarCam}
-            >
+            <View style={styles.avatarCam}>
               <CameraIcon size={15} color={colors.white} />
-            </Pressable>
+            </View>
           </View>
 
           <View style={styles.fieldRow}>
-            <Field
-              label="First Name"
-              required
-              count={`${profile.firstName.length}/50`}
-              value={profile.firstName}
-              onChangeText={update('firstName')}
-            />
-            <Field
-              label="Last Name"
-              required
-              count={`${profile.lastName.length}/50`}
-              value={profile.lastName}
-              onChangeText={update('lastName')}
-            />
+            <DisplayField label="First Name" required count={`${profile.firstName.length}/50`} value={profile.firstName} />
+            <DisplayField label="Last Name" required count={`${profile.lastName.length}/50`} value={profile.lastName} />
           </View>
 
           <RewardsTeaserCard
@@ -105,11 +80,9 @@ export function EditProfileScreen({ navigation }: Props) {
 
           <View style={styles.fieldSingle}>
             <Text style={styles.fieldLabel}>Email Address</Text>
-            <TextInput
-              style={[styles.input, styles.inputDisabled]}
-              value={profile.email}
-              editable={false}
-            />
+            <View style={[styles.inputBox, styles.inputDisabled]}>
+              <Text style={[styles.inputText, styles.inputTextDisabled]}>{profile.email}</Text>
+            </View>
           </View>
 
           <Card style={styles.contactCard}>
@@ -129,12 +102,9 @@ export function EditProfileScreen({ navigation }: Props) {
                 <Text style={styles.flagChipText}>IN (+91)</Text>
                 <ChevronDownIcon size={12} color={colors.muted} />
               </View>
-              <TextInput
-                style={[styles.input, styles.flexInput]}
-                value={profile.phone}
-                onChangeText={update('phone')}
-                keyboardType="phone-pad"
-              />
+              <View style={[styles.inputBox, styles.flexInput]}>
+                <Text style={styles.inputText}>{profile.phone}</Text>
+              </View>
             </View>
 
             <Text style={styles.subLabel}>LinkedIn</Text>
@@ -142,14 +112,11 @@ export function EditProfileScreen({ navigation }: Props) {
               <View style={[styles.socialIcon, { backgroundColor: colors.linkedin }]}>
                 <LinkedInMark />
               </View>
-              <TextInput
-                style={[styles.input, styles.inputWithIcon]}
-                placeholder="linkedin.com/in/username"
-                placeholderTextColor="#B7BAC4"
-                value={profile.linkedin}
-                onChangeText={update('linkedin')}
-                autoCapitalize="none"
-              />
+              <View style={[styles.inputBox, styles.inputWithIcon]}>
+                <Text style={[styles.inputText, !profile.linkedin && styles.placeholderText]}>
+                  {profile.linkedin || 'linkedin.com/in/username'}
+                </Text>
+              </View>
             </View>
 
             <Text style={styles.subLabel}>Twitter / X</Text>
@@ -157,14 +124,11 @@ export function EditProfileScreen({ navigation }: Props) {
               <View style={[styles.socialIcon, { backgroundColor: colors.twitter }]}>
                 <TwitterMark />
               </View>
-              <TextInput
-                style={[styles.input, styles.inputWithIcon]}
-                placeholder="x.com/username"
-                placeholderTextColor="#B7BAC4"
-                value={profile.twitter}
-                onChangeText={update('twitter')}
-                autoCapitalize="none"
-              />
+              <View style={[styles.inputBox, styles.inputWithIcon]}>
+                <Text style={[styles.inputText, !profile.twitter && styles.placeholderText]}>
+                  {profile.twitter || 'x.com/username'}
+                </Text>
+              </View>
             </View>
           </Card>
         </View>
@@ -179,15 +143,14 @@ export function EditProfileScreen({ navigation }: Props) {
   );
 }
 
-type FieldProps = {
+type DisplayFieldProps = {
   label: string;
   required?: boolean;
   count: string;
   value: string;
-  onChangeText: (value: string) => void;
 };
 
-function Field({ label, required, count, value, onChangeText }: FieldProps) {
+function DisplayField({ label, required, count, value }: DisplayFieldProps) {
   return (
     <View style={styles.field}>
       <View style={styles.fieldLabelRow}>
@@ -197,7 +160,9 @@ function Field({ label, required, count, value, onChangeText }: FieldProps) {
         </Text>
         <Text style={styles.fieldCount}>{count}</Text>
       </View>
-      <TextInput style={styles.input} value={value} onChangeText={onChangeText} />
+      <View style={styles.inputBox}>
+        <Text style={styles.inputText}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -299,21 +264,29 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.muted,
   },
-  input: {
+  inputBox: {
     height: 46,
     borderWidth: 1.4,
     borderColor: colors.line,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md + 2,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+  },
+  inputText: {
     fontFamily: fontFamily.medium,
     fontSize: fontSize.md,
     color: colors.ink,
-    backgroundColor: colors.white,
   },
   inputDisabled: {
     backgroundColor: '#F2F1EE',
-    color: '#A9ABB4',
     borderColor: '#EDEBE6',
+  },
+  inputTextDisabled: {
+    color: '#A9ABB4',
+  },
+  placeholderText: {
+    color: '#B7BAC4',
   },
   inputWithIcon: {
     paddingLeft: 46,
